@@ -22,13 +22,11 @@ vim.opt.rtp:prepend(lazypath)
 
 -- 插件加载：
 --   plugins/core/  通用插件（默认加载，跨平台跨语言）
---   plugins/lang/  语言相关插件（LSP/格式化/lint，按需启用）
+--   plugins/lang/  语言相关插件（LSP/格式化/lint）
+--                  lang 内插件自动检测系统工具，有则启用、无则禁用
 require('lazy').setup({
   { import = 'plugins.core' },
-  -- 按需启用语言支持（LSP、格式化、lint）：
-  -- 取消注释下面一行，并在对应系统安装所需工具
-  -- （如 basedpyright、ruff、stylua），详见 lua/plugins/lang/ 内注释
-  -- { import = 'plugins.lang' },
+  { import = 'plugins.lang' },
 }, {
   checker = { enabled = true },   -- 启动时检查插件更新
   change_detection = { notify = false },

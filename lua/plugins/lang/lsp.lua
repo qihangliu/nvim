@@ -1,14 +1,15 @@
 -- ============================================================
--- LSP 支持
+-- LSP 支持（自动检测）
 -- 使用 uv 安装的服务器，不通过 mason 下载
 -- Python: basedpyright（uv tool install）
--- ruff 由 conform/nvim-lint 调用系统 ruff
+-- 系统未安装 basedpyright 时自动禁用，不报错
 -- ============================================================
 return {
   -- LSP 配置
   {
     'neovim/nvim-lspconfig',
     event = { 'BufReadPre', 'BufNewFile' },
+    enabled = vim.fn.executable('basedpyright') == 1,
     config = function()
       -- Python：使用 uv 安装的 basedpyright（新版 nvim-lspconfig API）
       vim.lsp.config('basedpyright', {
