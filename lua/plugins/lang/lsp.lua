@@ -1,21 +1,52 @@
 -- ============================================================
 -- LSP 支持（自动检测）
--- 使用 uv 安装的服务器，不通过 mason 下载
--- Python: basedpyright（uv tool install）
--- 系统未安装 basedpyright 时自动禁用，不报错
+-- 检测系统已安装的 LSP 服务器，有则启用、无则跳过
+-- 核心：Python(basedpyright) / Lua(lua-language-server) / Bash(bash-language-server)
+-- 可选：JS-TS(typescript-language-server) / JSON(jsonls) / YAML(yamlls)
+-- 工具安装示例：
+--   Python: uv tool install basedpyright
+--   Lua:    lua-language-server（下载二进制或包管理器）
+--   Bash:   npm i -g bash-language-server
+--   JS-TS:  npm i -g typescript-language-server
+--   JSON:   npm i -g vscode-langservers-extracted
+--   YAML:   npm i -g yaml-language-server
 -- ============================================================
+local function has_any_server()
+  local bins = {
+    'basedpyright', 'lua-language-server', 'bash-language-server',
+    'typescript-language-server', 'json-languageserver', 'yaml-language-server',
+  }
+  for _, bin in ipairs(bins) do
+    if vim.fn.executable(bin) == 1 then
+      return true
+    end
+  end
+  return false
+end
+
 return {
   -- LSP 配置
   {
     'neovim/nvim-lspconfig',
     event = { 'BufReadPre', 'BufNewFile' },
-    enabled = vim.fn.executable('basedpyright') == 1,
+    enabled = has_any_server(),
     config = function()
-      -- Python：使用 uv 安装的 basedpyright（新版 nvim-lspconfig API）
-      vim.lsp.config('basedpyright', {
-        capabilities = require('cmp_nvim_lsp').default_capabilities(),
-      })
-      vim.lsp.enable('basedpyright')
+      -- 服务器名 → 可执行文件名映射
+      local servers = {
+        { name = 'basedpyright', bin = 'basedpyright' },
+        { name = 'lua_ls',       bin = 'lua-language-server' },
+        { name = 'bashls',       bin = 'bash-language-server' },
+        { name = 'ts_ls',        bin = 'typescript-language-server' },
+        { name = 'jsonls',       bin = 'json-languageserver' },
+        { name = 'yamlls',       bin = 'yaml-language-server' },
+      }
+      local capabilities = require('cmp_nvim_lsp').default_capabilities()
+      for _, s in ipairs(servers) do
+        if vim.fn.executable(s.bin) == 1 then
+          vim.lsp.config(s.name, { capabilities = capabilities })
+          vim.lsp.enable(s.name)
+        end
+      end
 
       -- LSP 快捷键
       local map = vim.keymap.set
