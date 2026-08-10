@@ -1,5 +1,5 @@
 -- ============================================================
--- 代码补全（nvim-cmp + LuaSnip）
+-- 代码补全（nvim-cmp + LuaSnip + lspkind 图标）
 -- ============================================================
 return {
   {
@@ -11,11 +11,13 @@ return {
       'hrsh7th/cmp-path',
       'L3MON4D3/LuaSnip',
       'saadparwaiz1/cmp_luasnip',
+      'onsails/lspkind.nvim',
       'nvim-autopairs',
     },
     config = function()
       local cmp = require('cmp')
       local luasnip = require('luasnip')
+      local lspkind = require('lspkind')
       local autopairs = require('nvim-autopairs.completion.cmp')
       cmp.event:on('confirm_done', autopairs.on_confirm_done())
 
@@ -24,6 +26,13 @@ return {
           expand = function(args)
             luasnip.lsp_expand(args.body)
           end,
+        },
+        formatting = {
+          format = lspkind.cmp_format({
+            mode = 'symbol_text',   -- 图标 + 类型文本
+            maxwidth = 50,
+            ellipsis_char = '...',
+          }),
         },
         mapping = cmp.mapping.preset.insert({
           ['<C-b>'] = cmp.mapping.scroll_docs(-4),

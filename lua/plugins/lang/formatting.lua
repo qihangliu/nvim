@@ -57,6 +57,11 @@ return {
         formatters_by_ft = formatters_by_ft,
         format_on_save = { timeout_ms = 500, lsp_format = 'fallback' },
       })
+
+      -- 手动格式化（<leader>f）
+      vim.keymap.set('n', '<leader>f', function()
+        require('conform').format({ async = true, lsp_format = 'fallback' })
+      end, { desc = 'Format buffer' })
     end,
   },
 }
