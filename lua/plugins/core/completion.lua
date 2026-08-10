@@ -12,7 +12,13 @@ return {
       'L3MON4D3/LuaSnip',
       'saadparwaiz1/cmp_luasnip',
       'onsails/lspkind.nvim',
-      'nvim-autopairs',
+      -- autopairs 并入此处，单一声明点（随 nvim-cmp 一起加载）
+      {
+        'windwp/nvim-autopairs',
+        config = function()
+          require('nvim-autopairs').setup({})
+        end,
+      },
     },
     config = function()
       local cmp = require('cmp')

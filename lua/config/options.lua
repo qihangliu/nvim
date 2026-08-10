@@ -48,6 +48,7 @@ opt.ignorecase = false          -- 大小写敏感
 -- 缓存
 opt.backup = false              -- 不备份
 opt.swapfile = false            -- 不生成 swap
+opt.undofile = true             -- 持久化撤销历史（跨会话保留）
 opt.autoread = true             -- 外部修改自动重读
 opt.autowrite = true            -- 自动保存
 opt.confirm = true              -- 未保存时弹出确认
