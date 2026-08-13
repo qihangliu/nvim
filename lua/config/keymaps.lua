@@ -17,13 +17,6 @@ map('n', '<C-j>', '<C-w>j', opts)
 map('n', '<C-k>', '<C-w>k', opts)
 map('n', '<C-l>', '<C-w>l', opts)
 
--- 取消搜索高亮
-map('n', '<Esc>', ':nohlsearch<CR>', opts)
-
--- 粘贴模式切换（F3）
-map('n', '<F3>', ':set paste!<CR>', opts)
-
--- Telescope 快捷键（如果 telescope 已配置）
-map('n', '<leader>ff', ':Telescope find_files<CR>', opts)
-map('n', '<leader>fg', ':Telescope live_grep<CR>', opts)
-map('n', '<leader>fb', ':Telescope buffers<CR>', opts)
+-- 取消搜索高亮（<C-l> 已被分屏导航占用，用 <leader>nh）
+map('n', '<leader>nh', ':nohlsearch<CR>', opts)
+-- Telescope 快捷键在 plugins/core/telescope.lua 中定义（单一来源）

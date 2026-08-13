@@ -65,4 +65,3 @@ opt.scrolloff = 8              -- 光标上下留白
 opt.sidescrolloff = 8
 opt.splitright = true          -- 新分屏在右侧
 opt.splitbelow = true          -- 新分屏在下方
-opt.termguicolors = true

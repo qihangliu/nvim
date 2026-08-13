@@ -28,6 +28,6 @@ require('lazy').setup({
   { import = 'plugins.core' },
   { import = 'plugins.lang' },
 }, {
-  checker = { enabled = true },   -- 启动时检查插件更新
+  checker = { enabled = false },  -- 手动 :Lazy check 检查更新（避免每次启动联网拖慢）
   change_detection = { notify = false },
 })
