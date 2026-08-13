@@ -11,25 +11,11 @@
 --   JSON:   npm i -g vscode-langservers-extracted
 --   YAML:   npm i -g yaml-language-server
 -- ============================================================
-local function has_any_server()
-  local bins = {
-    'basedpyright', 'lua-language-server', 'bash-language-server',
-    'typescript-language-server', 'json-languageserver', 'yaml-language-server',
-  }
-  for _, bin in ipairs(bins) do
-    if vim.fn.executable(bin) == 1 then
-      return true
-    end
-  end
-  return false
-end
-
 return {
-  -- LSP 配置
+  -- LSP 配置（server 由 mason.lua 自动安装；此处检测已安装的并启用）
   {
     'neovim/nvim-lspconfig',
     event = { 'BufReadPre', 'BufNewFile' },
-    enabled = has_any_server(),
     config = function()
       -- 服务器名 → 可执行文件名映射
       local servers = {
@@ -37,7 +23,7 @@ return {
         { name = 'lua_ls',       bin = 'lua-language-server' },
         { name = 'bashls',       bin = 'bash-language-server' },
         { name = 'ts_ls',        bin = 'typescript-language-server' },
-        { name = 'jsonls',       bin = 'json-languageserver' },
+        { name = 'jsonls',       bin = 'vscode-json-language-server' },
         { name = 'yamlls',       bin = 'yaml-language-server' },
       }
       local capabilities = require('cmp_nvim_lsp').default_capabilities()
