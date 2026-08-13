@@ -1,36 +1,74 @@
 -- ============================================================
--- Treesitter 语法高亮
--- 固定 master 分支（旧版稳定版）：本机用 zig 作为 C 编译器
--- 新版 (main) 需要 tree-sitter-cli，本机未安装
+-- Treesitter 语法高亮（main 分支，Neovim 0.12+）
+-- 依赖：tree-sitter-cli + C 编译器（zig/gcc/clang）
+-- 跨平台：缺依赖时静默降级不报错；装齐后重启自动启用
 -- ============================================================
+
+-- 检测 C 编译器（编译 parser 必需）
+local has_cc = vim.fn.executable('cc') == 1
+  or vim.fn.executable('gcc') == 1
+  or vim.fn.executable('clang') == 1
+  or vim.fn.executable('zig') == 1
+-- 检测 tree-sitter-cli（main 分支安装 parser 必需）
+local has_ts_cli = vim.fn.executable('tree-sitter') == 1
+local can_install = has_cc and has_ts_cli
+
+local languages = { 'python', 'bash', 'lua', 'vim', 'vimdoc', 'markdown', 'json', 'yaml', 'toml' }
+
 return {
   {
     'nvim-treesitter/nvim-treesitter',
-    branch = 'master',  -- 旧版稳定分支，支持 zig 编译解析器
-    build = ':TSUpdate',
+    lazy = false,  -- main 分支不支持懒加载
+    build = can_install and ':TSUpdate' or nil,
     config = function()
-      require('nvim-treesitter.configs').setup({
-        ensure_installed = { 'python', 'bash', 'lua', 'vim', 'vimdoc', 'markdown', 'json', 'yaml', 'toml' },
-        auto_install = true,
-        highlight = { enable = true },
-        indent = { enable = true },
+      -- 回退：缺依赖时不安装 parser，降级到 Neovim 内置 parser（c/lua/vim/markdown 等），
+      -- 仅提示一次（WARN，不刷屏）；装齐后重启自动启用
+      if not can_install then
+        local missing = {}
+        if not has_cc then
+          missing[#missing + 1] = 'C 编译器 (gcc/clang/zig)'
+        end
+        if not has_ts_cli then
+          missing[#missing + 1] = 'tree-sitter-cli'
+        end
+        vim.schedule(function()
+          vim.notify(
+            'Treesitter 降级：缺少 ' .. table.concat(missing, '、')
+              .. '，仅使用 Neovim 内置 parser。装齐后重启自动启用。',
+            vim.log.levels.WARN
+          )
+        end)
+      end
+
+      require('nvim-treesitter').setup {
+        install_dir = vim.fn.stdpath('data') .. '/site',
+      }
+
+      -- 有 cli + 编译器才安装 parser（异步，不阻塞启动）
+      if can_install then
+        require('nvim-treesitter').install(languages)
+      end
+
+      -- 高亮（Neovim 内置；parser 缺失时静默）
+      vim.api.nvim_create_autocmd('FileType', {
+        callback = function()
+          pcall(vim.treesitter.start)
+        end,
       })
 
-      -- Windows 修复：master 分支编译出 .so，但 Neovim 在 Windows 上需要 .dll 才能加载解析器
-      -- 在解析器安装/更新后把 .so 复制为同名 .dll（仅 Windows 生效，Linux 解析器本就是 .so）
+      -- 缩进（实验性，保持旧配置行为）
+      vim.api.nvim_create_autocmd('FileType', {
+        callback = function()
+          vim.bo.indentexpr = "v:lua.require'nvim-treesitter'.indentexpr()"
+        end,
+      })
+
+      -- Windows 兜底：若编译产物是 .so 则复制为 .dll（找不到 .so 时无副作用）
       if vim.fn.has('win32') == 1 then
         local function fix_parser_dlls()
-          local dirs = {}
-          local ok, dir = pcall(require('nvim-treesitter.configs').get_parser_install_dir)
-          if ok and dir and dir ~= '' then
-            dirs[#dirs + 1] = dir
-          end
-          local plugin_dir = vim.fs.joinpath(vim.fn.stdpath('data'), 'lazy', 'nvim-treesitter', 'parser')
-          if vim.fn.isdirectory(plugin_dir) == 1 then
-            dirs[#dirs + 1] = plugin_dir
-          end
-          for _, d in ipairs(dirs) do
-            for _, so in ipairs(vim.fn.glob(vim.fs.joinpath(d, '*.so'), false, true)) do
+          local dir = vim.fs.joinpath(vim.fn.stdpath('data'), 'site', 'parser')
+          if vim.fn.isdirectory(dir) == 1 then
+            for _, so in ipairs(vim.fn.glob(vim.fs.joinpath(dir, '*.so'), false, true)) do
               local dll = so:gsub('%.so$', '.dll')
               if vim.fn.filereadable(dll) == 0 then
                 vim.uv.fs_copyfile(so, dll)
@@ -38,7 +76,6 @@ return {
             end
           end
         end
-
         fix_parser_dlls()
         vim.api.nvim_create_autocmd({ 'FileType', 'BufReadPost' }, {
           group = vim.api.nvim_create_augroup('TreesitterDllFix', { clear = true }),
