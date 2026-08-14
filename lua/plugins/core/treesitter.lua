@@ -9,6 +9,33 @@ local has_cc = vim.fn.executable('cc') == 1
   or vim.fn.executable('gcc') == 1
   or vim.fn.executable('clang') == 1
   or vim.fn.executable('zig') == 1
+
+-- Windows + 仅有 zig 时：tree-sitter-cli 0.26 会硬编码传
+-- `--target=x86_64-pc-windows-msvc`，而 zig 0.16 无法解析 `pc` vendor，
+-- 且 msvc target 需要 Windows SDK。生成 zig-cc.cmd shim 把 target 重写为
+-- windows-gnu，并设置 CC 环境变量让 tree-sitter 使用它。
+if vim.fn.has('win32') == 1
+  and vim.fn.executable('cc') == 0
+  and vim.fn.executable('gcc') == 0
+  and vim.fn.executable('clang') == 0
+  and vim.fn.executable('zig') == 1
+  and (vim.env.CC == nil or vim.env.CC == 'zig')
+then
+  local zig = vim.fn.exepath('zig')
+  local shim = vim.fs.joinpath(vim.fn.stdpath('data'), 'zig-cc.cmd')
+  local lines = {
+    '@echo off',
+    'set "args=%*"',
+    'set "args=%args:pc-windows-msvc=windows-gnu%"',
+    '"' .. zig .. '" cc %args%',
+  }
+  local f = io.open(shim, 'w')
+  if f then
+    f:write(table.concat(lines, '\r\n'))
+    f:close()
+    vim.env.CC = shim
+  end
+end
 -- 检测 tree-sitter-cli（main 分支安装 parser 必需）
 local has_ts_cli = vim.fn.executable('tree-sitter') == 1
 local can_install = has_cc and has_ts_cli

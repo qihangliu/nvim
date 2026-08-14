@@ -9,7 +9,7 @@ return {
     config = function()
       require('lualine').setup({
         options = {
-          theme = 'catppuccin',  -- lualine 内置 catppuccin 主题（不依赖 catppuccin utils）
+          theme = 'auto',  -- 自动适配当前 colorscheme（catppuccin）；lualine 内置无 catppuccin 主题
           section_separators = { left = '', right = '' },
           component_separators = { left = '', right = '' },
         },

@@ -22,7 +22,7 @@ return {
           -- formatter
           'stylua', 'shfmt', 'ruff', 'prettierd',
           -- linter
-          'shellcheck', 'luacheck',
+          'shellcheck',
         },
         run_on_start = true,
       })
