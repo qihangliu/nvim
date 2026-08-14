@@ -11,7 +11,7 @@ local has_cc = vim.fn.executable('cc') == 1
   or vim.fn.executable('zig') == 1
 
 -- Windows + 仅有 zig 时：tree-sitter-cli 0.26 会硬编码传
--- `--target=x86_64-pc-windows-msvc`，而 zig 0.16 无法解析 `pc` vendor，
+-- `--target=*-pc-windows-msvc`，而 zig 0.16 无法解析 `pc` vendor，
 -- 且 msvc target 需要 Windows SDK。生成 zig-cc.cmd shim 把 target 重写为
 -- windows-gnu，并设置 CC 环境变量让 tree-sitter 使用它。
 if vim.fn.has('win32') == 1
@@ -23,16 +23,20 @@ if vim.fn.has('win32') == 1
 then
   local zig = vim.fn.exepath('zig')
   local shim = vim.fs.joinpath(vim.fn.stdpath('data'), 'zig-cc.cmd')
-  local lines = {
-    '@echo off',
-    'set "args=%*"',
-    'set "args=%args:pc-windows-msvc=windows-gnu%"',
-    '"' .. zig .. '" cc %args%',
-  }
-  local f = io.open(shim, 'w')
-  if f then
-    f:write(table.concat(lines, '\r\n'))
-    f:close()
+  if not vim.uv.fs_stat(shim) then
+    local lines = {
+      '@echo off',
+      'set "args=%*"',
+      'set "args=%args:pc-windows-msvc=windows-gnu%"',
+      '"' .. zig .. '" cc %args%',
+    }
+    local f = io.open(shim, 'w')
+    if f then
+      f:write(table.concat(lines, '\r\n'))
+      f:close()
+    end
+  end
+  if vim.uv.fs_stat(shim) then
     vim.env.CC = shim
   end
 end
@@ -48,25 +52,6 @@ return {
     lazy = false,  -- main 分支不支持懒加载
     build = can_install and ':TSUpdate' or nil,
     config = function()
-      -- 回退：缺依赖时不安装 parser，降级到 Neovim 内置 parser（c/lua/vim/markdown 等），
-      -- 仅提示一次（WARN，不刷屏）；装齐后重启自动启用
-      if not can_install then
-        local missing = {}
-        if not has_cc then
-          missing[#missing + 1] = 'C 编译器 (gcc/clang/zig)'
-        end
-        if not has_ts_cli then
-          missing[#missing + 1] = 'tree-sitter-cli'
-        end
-        vim.schedule(function()
-          vim.notify(
-            'Treesitter 降级：缺少 ' .. table.concat(missing, '、')
-              .. '，仅使用 Neovim 内置 parser。装齐后重启自动启用。',
-            vim.log.levels.WARN
-          )
-        end)
-      end
-
       require('nvim-treesitter').setup {
         install_dir = vim.fn.stdpath('data') .. '/site',
       }
@@ -97,7 +82,17 @@ return {
           if vim.fn.isdirectory(dir) == 1 then
             for _, so in ipairs(vim.fn.glob(vim.fs.joinpath(dir, '*.so'), false, true)) do
               local dll = so:gsub('%.so$', '.dll')
-              if vim.fn.filereadable(dll) == 0 then
+              local so_stat = vim.uv.fs_stat(so)
+              local dll_stat = vim.uv.fs_stat(dll)
+              if so_stat and (
+                not dll_stat
+                or so_stat.mtime.sec > dll_stat.mtime.sec
+                or (
+                  so_stat.mtime.sec == dll_stat.mtime.sec
+                  and so_stat.mtime.nsec > dll_stat.mtime.nsec
+                )
+                or so_stat.size ~= dll_stat.size
+              ) then
                 vim.uv.fs_copyfile(so, dll)
               end
             end

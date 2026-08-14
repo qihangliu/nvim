@@ -12,11 +12,23 @@ require('config.keymaps')
 -- 引导 lazy.nvim（首次自动克隆）
 local lazypath = vim.fn.stdpath('data') .. '/lazy/lazy.nvim'
 if not vim.uv.fs_stat(lazypath) then
+  if vim.fn.executable('git') ~= 1 then
+    vim.schedule(function()
+      vim.notify('lazy.nvim 初始化已跳过：未找到 Git。', vim.log.levels.WARN)
+    end)
+    return
+  end
   vim.fn.system({
     'git', 'clone', '--filter=blob:none',
     'https://github.com/folke/lazy.nvim.git',
     '--branch=stable', lazypath,
   })
+  if vim.v.shell_error ~= 0 then
+    vim.schedule(function()
+      vim.notify('lazy.nvim 初始化失败：git clone 未成功完成。', vim.log.levels.WARN)
+    end)
+    return
+  end
 end
 vim.opt.rtp:prepend(lazypath)
 
